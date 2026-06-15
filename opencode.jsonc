@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "deepseek": {
+      "options": {
+        "baseURL": "http://192.168.45.32:3000/v1",
+      },
+    },
+  },
+}
