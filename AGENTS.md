@@ -16,3 +16,6 @@ AI automation exploration for personal use. Early stage / blank slate — no est
 
 ## OpenCode provider
 Local DeepSeek-compatible endpoint at `http://192.168.45.32:3000/v1`. If that host is unreachable, OpenCode sessions will fail.
+
+## TickTick / 滴答清单
+Interact via the global `dida` CLI (npm package `@suibiji/dida-cli`). Detailed usage: `dida/README.md`.
