@@ -6,7 +6,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
-  <div x-data="anki" style="max-width:960px;margin:40px auto" @keyup.window="onKey">
+  <div x-data="anki" style="max-width:960px;margin:40px auto" @keydown.window="onKey">
     <div style="display:flex;gap:8px;align-items:center">
       <label style="flex:1;display:flex;align-items:center;gap:4px">URL<input x-model="url" style="flex:1"></label>
       <label style="flex:1;display:flex;align-items:center;gap:4px">Key<input x-model="key" style="flex:1"></label>
@@ -14,17 +14,19 @@
     </div>
 
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">
-      <template x-for="(card, i) in [...Array(6)]">
-        <div style="border:1px solid #ccc;min-height:320px;flex:0 0 calc(33.333% - 6px);box-sizing:border-box;position:relative;text-align:center;cursor:pointer" @click="cycle(i)">
-          <div style="position:absolute;top:4px;left:6px;font-size:12px;color:#999;pointer-events:none" x-show="cards[i]" x-text="cards[i]?.deck"></div>
-          <div style="position:absolute;top:4px;right:6px;font-size:12px;pointer-events:none" x-show="cards[i]" x-text="cards[i]?.state" :style="cards[i]?.state === 'E' ? 'color:red' : 'color:#999'"></div>
-          <div style="padding:20px 12px 12px" x-show="cards[i]" x-html="cards[i]?.front"></div>
-          <hr style="margin:8px 12px" x-show="cards[i]?.state === 'A'">
-          <div style="padding:0 12px 12px" x-show="cards[i]?.state === 'A'" x-html="cards[i]?.back"></div>
-          <div style="padding:12px" x-show="!cards[i]">
-            <div style="background:#eee;height:16px;width:80%;margin:0 auto 8px"></div>
-            <div style="background:#eee;height:16px;width:60%;margin:0 auto"></div>
-          </div>
+      <template x-for="card in cards">
+        <div style="border:1px solid #ccc;min-height:320px;flex:0 0 calc(33.333% - 6px);box-sizing:border-box;position:relative;text-align:center;cursor:pointer" @click="cycle(cards.indexOf(card))">
+          <div style="position:absolute;top:4px;left:6px;font-size:12px;color:#999;pointer-events:none" x-text="card.deck"></div>
+          <div style="position:absolute;top:4px;right:6px;font-size:12px;pointer-events:none" x-text="card.state" :style="card.state === 'E' ? 'color:red' : 'color:#999'"></div>
+          <div style="padding:20px 12px 12px" x-html="card.front"></div>
+          <hr style="margin:8px 12px" x-show="card.state === 'A'">
+          <div style="padding:0 12px 12px" x-show="card.state === 'A'" x-html="card.back"></div>
+        </div>
+      </template>
+      <template x-for="i in (6 - cards.length)">
+        <div style="border:1px solid #ccc;min-height:320px;flex:0 0 calc(33.333% - 6px);box-sizing:border-box;padding:12px">
+          <div style="background:#eee;height:16px;width:80%;margin:0 auto 8px"></div>
+          <div style="background:#eee;height:16px;width:60%;margin:0 auto"></div>
         </div>
       </template>
     </div>
@@ -60,24 +62,41 @@
           try {
             const ver = await this.anki('version')
             this.status = `Connected (API v${ver})`
+            await this.loadCards()
+          } catch (e) {
+            this.status = 'Failed: ' + e.message
+          }
+        },
+        async loadCards() {
+          const [a, b, ids] = await Promise.all([
+            this.anki('findCards', { query: 'is:new' }),
+            this.anki('findCards', { query: 'is:due' }),
+            this.anki('findCards', { query: 'is:new OR is:due' }),
+          ])
+          this.stats = { new: a.length, due: b.length }
 
-            const [a, b, ids] = await Promise.all([
-              this.anki('findCards', { query: 'is:new' }),
-              this.anki('findCards', { query: 'is:due' }),
-              this.anki('findCards', { query: 'is:new OR is:due' }),
-            ])
-            this.stats = { new: a.length, due: b.length }
-
-            const top = ids.slice(0, 6)
+          this.shuffle(ids)
+          const top = ids.slice(0, 6)
+          if (top.length) {
             const info = await this.anki('cardsInfo', { cards: top })
             this.cards = info.map(c => ({
+              id: c.cardId,
               state: 'R',
               deck: c.deckName,
               front: c.fields.Front?.value ?? Object.values(c.fields)[0]?.value ?? '',
               back: c.fields.Back?.value ?? Object.values(c.fields)[1]?.value ?? ''
             }))
-          } catch (e) {
-            this.status = 'Failed: ' + e.message
+          } else {
+            this.cards = []
+          }
+          this.status = this.cards.length
+            ? `Display ${this.cards.length} card(s)`
+            : 'All cards completed, congratulations!'
+        },
+        shuffle(arr) {
+          for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1))
+            ;[arr[i], arr[j]] = [arr[j], arr[i]]
           }
         },
         cycle(i) {
@@ -88,8 +107,25 @@
           c.state = order[(idx + 1) % 3]
         },
         onKey(e) {
-          const n = parseInt(e.key)
-          if (n >= 1 && n <= 6) this.cycle(n - 1)
+          if (e.key === 'Enter') { e.preventDefault(); return this.submit() }
+          const map = { q:0,w:1,e:2,a:3,s:4,d:5, '1':0,'2':1,'3':2,'4':3,'5':4,'6':5 }
+          const i = map[e.key.toLowerCase()]
+          if (i !== undefined) this.cycle(i)
+        },
+        async submit() {
+          let again = 0, good = 0
+          const answers = this.cards.map(c => {
+            if (c.state === 'E') { again++; return { cardId: c.id, ease: 1 } }
+            else { good++; return { cardId: c.id, ease: 3 } }
+          })
+          if (!answers.length) return
+          this.status = `Do Answer with Again ${again} Good ${good}`
+          try {
+            await this.anki('answerCards', { answers })
+            await this.loadCards()
+          } catch (e) {
+            this.status = 'Submit failed: ' + e.message
+          }
         }
       }))
     })
