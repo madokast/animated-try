@@ -113,6 +113,12 @@
           if (i !== undefined) this.cycle(i)
         },
         async submit() {
+          const unreviewed = this.cards.some(c => c.state === 'R')
+          if (unreviewed) {
+            this.cards.forEach(c => { if (c.state === 'R') c.state = 'A' })
+            this.status = 'All revealed'
+            return
+          }
           let again = 0, good = 0
           const answers = this.cards.map(c => {
             if (c.state === 'E') { again++; return { cardId: c.id, ease: 1 } }
