@@ -1,28 +1,21 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Anki Connect</title>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
-  <div x-data="anki" style="max-width:400px;margin:40px auto">
-    <div>
-      <label>URL<input x-model="url" style="width:100%"></label>
-    </div>
-    <div>
-      <label>Key<input x-model="key" style="width:100%"></label>
-    </div>
-    <div style="margin-top:8px">
-      <button @click="connect">连接</button>
-      <span x-text="status"></span>
+  <div x-data="anki" style="max-width:640px;margin:40px auto">
+    <div style="display:flex;gap:8px;align-items:center">
+      <label style="flex:1;display:flex;align-items:center;gap:4px">URL<input x-model="url" style="flex:1"></label>
+      <label style="flex:1;display:flex;align-items:center;gap:4px">Key<input x-model="key" style="flex:1"></label>
+      <button @click="connect">Connect</button>
     </div>
 
-    <footer style="margin-top:16px;border-top:1px solid #ccc;padding-top:8px" x-show="stats.new + stats.learn + stats.review > 0">
-      新<span x-text="stats.new"></span>
-      学习<span x-text="stats.learn"></span>
-      复习<span x-text="stats.review"></span>
-      共<span x-text="stats.total"></span>
+    <footer style="margin-top:16px;border-top:1px solid #ccc;padding-top:8px;display:flex;justify-content:space-between">
+      <span x-text="status"></span>
+      <span>New <span x-text="stats.new"></span> &middot; Due <span x-text="stats.due"></span></span>
     </footer>
   </div>
 
@@ -32,7 +25,7 @@
         url: 'http://127.0.0.1:8765',
         key: '',
         status: '',
-        stats: { new: 0, learn: 0, review: 0, total: 0 },
+        stats: { new: 0, due: 0 },
         async anki(action, params = {}) {
           const body = { action, version: 6 }
           if (this.key) body.key = this.key
@@ -46,20 +39,18 @@
           return data.result
         },
         async connect() {
-          this.status = '连接中...'
+          this.status = 'Connecting...'
           try {
             const ver = await this.anki('version')
-            this.status = `已连接 (API v${ver})`
+            this.status = `Connected (API v${ver})`
 
-            const [a, b, c, d] = await Promise.all([
+            const [a, b] = await Promise.all([
               this.anki('findCards', { query: 'is:new' }),
-              this.anki('findCards', { query: 'is:learn' }),
-              this.anki('findCards', { query: 'is:review' }),
-              this.anki('findCards', { query: '' }),
+              this.anki('findCards', { query: 'is:due' }),
             ])
-            this.stats = { new: a.length, learn: b.length, review: c.length, total: d.length }
+            this.stats = { new: a.length, due: b.length }
           } catch (e) {
-            this.status = '失败: ' + e.message
+            this.status = 'Failed: ' + e.message
           }
         }
       }))
