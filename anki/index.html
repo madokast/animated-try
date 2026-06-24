@@ -19,24 +19,42 @@
       </div>
       <template x-if="lang === 'zh'">
         <div>
-          <p><strong>按键映射</strong></p>
-          <p>1-6 / qweasd → 对应卡片，切换 R→A→E</p>
-          <p>Enter → 首次揭示 R→A，再次提交评分</p>
+          <p><strong>操作</strong></p>
+          <ul>
+            <li>1-6 / qweasd / 鼠标点击 对应卡片，循环切换 Front→Good→Again→Front...</li>
+            <li>Enter 揭示所有 Front，若已全部揭示则提交评分</li>
+          </ul>
           <p><strong>状态说明</strong></p>
-          <p>R=仅正面 | A=正反面 | E=错误(红色)</p>
+          <ul>
+            <li><span style="color:#999">Front</span> 仅显示正面，待作答</li>
+            <li><span style="color:green">Good</span> 已揭示答案，认为掌握</li>
+            <li><span style="color:red">Again</span> 标记为未掌握，需重学</li>
+          </ul>
           <p><strong>评分规则</strong></p>
-          <p>E → Again | 非E → Good</p>
+          <ul>
+            <li>Again 按 Again(1) 重来</li>
+            <li>其他 按 Good(3) 正确</li>
+          </ul>
         </div>
       </template>
       <template x-if="lang === 'en'">
         <div>
-          <p><strong>Keys</strong></p>
-          <p>1-6 / qweasd → toggle R→A→E</p>
-          <p>Enter → 1st: reveal R→A, 2nd: submit</p>
+          <p><strong>Controls</strong></p>
+          <ul>
+            <li>1-6 / qweasd / click to cycle Front→Good→Again→Front...</li>
+            <li>Enter reveals all Front, submits if all revealed</li>
+          </ul>
           <p><strong>States</strong></p>
-          <p>R=Front | A=Both | E=Wrong (red)</p>
+          <ul>
+            <li><span style="color:#999">Front</span> Question only, waiting for answer</li>
+            <li><span style="color:green">Good</span> Answer revealed, marked as known</li>
+            <li><span style="color:red">Again</span> Marked as forgotten, needs relearning</li>
+          </ul>
           <p><strong>Scoring</strong></p>
-          <p>E → Again | Else → Good</p>
+          <ul>
+            <li>Again scored as Again(1) wrong</li>
+            <li>Else scored as Good(3) correct</li>
+          </ul>
         </div>
       </template>
     </div>
@@ -48,20 +66,22 @@
       <button @click="connect">Connect</button>
     </div>
 
-    <div style="display:flex;flex-wrap:wrap;gap:8px;align-content:stretch;overflow:hidden">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-content:stretch;overflow:hidden;padding-top:15px">
       <template x-for="card in cards">
         <div style="border:1px solid #ccc;height:calc(50% - 4px);min-height:150px;flex:0 0 calc(33.333% - 6px);box-sizing:border-box;position:relative;text-align:center" @mousedown="mouseDown(cards.indexOf(card))" @mouseup="mouseUp(cards.indexOf(card))">
           <div style="position:absolute;top:4px;left:10px;font-size:18px;color:#999;pointer-events:none" x-text="card.deck"></div>
-          <div style="position:absolute;top:4px;right:10px;font-size:18px;pointer-events:none"><span x-text="card.state" :style="card.state === 'E' ? 'color:red' : 'color:#999'"></span></div>
+          <div style="position:absolute;top:4px;right:10px;font-size:18px;pointer-events:none"><span x-text="card.state" :style="card.state === 'Again' ? 'color:red' : (card.state === 'Good' ? 'color:green' : 'color:#999')"></span></div>
           <div style="padding:20px 12px 12px" x-html="card.front"></div>
-          <hr style="margin:8px 12px" x-show="card.state === 'A'">
-          <div style="padding:0 12px 12px" x-show="card.state === 'A'" x-html="card.back"></div>
+          <hr style="margin:8px 12px" x-show="card.state === 'Good'">
+          <div style="padding:0 12px 12px" x-show="card.state === 'Good'" x-html="card.back"></div>
+          <div style="position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:32px;color:#ddd;pointer-events:none" x-text="keyLabel[cards.indexOf(card)]"></div>
         </div>
       </template>
       <template x-for="i in (6 - cards.length)">
-        <div style="border:1px solid #ccc;height:calc(50% - 4px);min-height:150px;flex:0 0 calc(33.333% - 6px);box-sizing:border-box;padding:12px">
+        <div style="border:1px solid #ccc;height:calc(50% - 4px);min-height:150px;flex:0 0 calc(33.333% - 6px);box-sizing:border-box;padding:12px;position:relative">
           <div style="background:#eee;height:16px;width:80%;margin:0 auto 8px"></div>
           <div style="background:#eee;height:16px;width:60%;margin:0 auto"></div>
+          <div style="position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:32px;color:#ddd;pointer-events:none" x-text="keyLabel[cards.length + i]"></div>
         </div>
       </template>
     </div>
@@ -75,7 +95,7 @@
   <script>
     document.addEventListener('alpine:init', () => {
       Alpine.data('help', () => ({
-        open: false,
+        open: true,
         lang: 'zh'
       }))
       Alpine.data('anki', () => ({
@@ -84,6 +104,7 @@
         status: '',
         stats: { new: 0, due: 0 },
         cards: [],
+        keyLabel: ['1 Q', '2 W', '3 E', '4 A', '5 S', '6 D'],
         _kt: {},
         _mt: {},
         async anki(action, params = {}) {
@@ -122,7 +143,7 @@
             const info = await this.anki('cardsInfo', { cards: top })
             this.cards = info.map(c => ({
               id: c.cardId,
-              state: 'R',
+              state: 'Front',
               deck: c.deckName,
               front: c.fields.Front?.value ?? Object.values(c.fields)[0]?.value ?? '',
               back: c.fields.Back?.value ?? Object.values(c.fields)[1]?.value ?? ''
@@ -143,7 +164,7 @@
         cycle(i) {
           const c = this.cards[i]
           if (!c) return
-          const order = ['R', 'A', 'E']
+          const order = ['Front', 'Good', 'Again']
           const idx = order.indexOf(c.state)
           c.state = order[(idx + 1) % 3]
         },
@@ -167,15 +188,15 @@
           if (elapsed <= 300) this.cycle(i)
         },
         async submit() {
-          const unreviewed = this.cards.some(c => c.state === 'R')
+          const unreviewed = this.cards.some(c => c.state === 'Front')
           if (unreviewed) {
-            this.cards.forEach(c => { if (c.state === 'R') c.state = 'A' })
+            this.cards.forEach(c => { if (c.state === 'Front') c.state = 'Good' })
             this.status = 'All revealed'
             return
           }
           let again = 0, good = 0
           const answers = this.cards.map(c => {
-            if (c.state === 'E') { again++; return { cardId: c.id, ease: 1 } }
+            if (c.state === 'Again') { again++; return { cardId: c.id, ease: 1 } }
             else { good++; return { cardId: c.id, ease: 3 } }
           })
           if (!answers.length) return
