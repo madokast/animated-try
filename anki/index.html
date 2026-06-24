@@ -9,7 +9,7 @@
   <div x-data="anki" style="max-width:960px;margin:40px auto" @keydown.window="onKeyDown" @keyup.window="onKeyUp">
     <div style="display:flex;gap:8px;align-items:center">
       <label style="flex:1;display:flex;align-items:center;gap:4px">URL<input x-model="url" style="flex:1"></label>
-      <label style="flex:1;display:flex;align-items:center;gap:4px">Key<input x-model="key" style="flex:1"></label>
+      <label style="flex:1;display:flex;align-items:center;gap:4px">Key<input x-model="key" style="flex:1" type="password"></label>
       <button @click="connect">Connect</button>
     </div>
 
