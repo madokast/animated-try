@@ -4,34 +4,69 @@
   <meta charset="UTF-8">
   <title>Anki Connect</title>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; font-size: 24px; }
+    input, button { font-size: inherit; }
+  </style>
 </head>
 <body>
-  <div x-data="anki" style="max-width:960px;margin:40px auto" @keydown.window="onKeyDown" @keyup.window="onKeyUp">
+  <div x-data="help" style="position:fixed;top:8px;right:8px;z-index:100">
+    <button @click="open = !open" style="font-size:18px">?</button>
+    <div x-show="open" style="position:fixed;top:0;right:0;width:320px;height:100%;background:#fff;border-left:1px solid #ccc;overflow-y:auto;font-size:16px;padding:16px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+        <button @click="lang = lang === 'zh' ? 'en' : 'zh'" x-text="lang === 'zh' ? 'EN' : '中'"></button>
+        <button @click="open = false">Hide</button>
+      </div>
+      <template x-if="lang === 'zh'">
+        <div>
+          <p><strong>按键映射</strong></p>
+          <p>1-6 / qweasd → 对应卡片，切换 R→A→E</p>
+          <p>Enter → 首次揭示 R→A，再次提交评分</p>
+          <p><strong>状态说明</strong></p>
+          <p>R=仅正面 | A=正反面 | E=错误(红色)</p>
+          <p><strong>评分规则</strong></p>
+          <p>E → Again | 非E → Good</p>
+        </div>
+      </template>
+      <template x-if="lang === 'en'">
+        <div>
+          <p><strong>Keys</strong></p>
+          <p>1-6 / qweasd → toggle R→A→E</p>
+          <p>Enter → 1st: reveal R→A, 2nd: submit</p>
+          <p><strong>States</strong></p>
+          <p>R=Front | A=Both | E=Wrong (red)</p>
+          <p><strong>Scoring</strong></p>
+          <p>E → Again | Else → Good</p>
+        </div>
+      </template>
+    </div>
+  </div>
+  <div x-data="anki" style="max-width:960px;margin:0 auto;min-height:600px;height:100%;display:grid;grid-template-rows:auto 1fr 36px" @keydown.window="onKeyDown" @keyup.window="onKeyUp">
     <div style="display:flex;gap:8px;align-items:center">
       <label style="flex:1;display:flex;align-items:center;gap:4px">URL<input x-model="url" style="flex:1"></label>
       <label style="flex:1;display:flex;align-items:center;gap:4px">Key<input x-model="key" style="flex:1" type="password"></label>
       <button @click="connect">Connect</button>
     </div>
 
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-content:stretch;overflow:hidden">
       <template x-for="card in cards">
-         <div style="border:1px solid #ccc;min-height:320px;flex:0 0 calc(33.333% - 6px);box-sizing:border-box;position:relative;text-align:center" @mousedown="mouseDown(cards.indexOf(card))" @mouseup="mouseUp(cards.indexOf(card))">
-          <div style="position:absolute;top:4px;left:10px;font-size:12px;color:#999;pointer-events:none" x-text="card.deck"></div>
-           <div style="position:absolute;top:4px;right:10px;font-size:12px;pointer-events:none"><span x-text="card.state" :style="card.state === 'E' ? 'color:red' : 'color:#999'"></span></div>
+        <div style="border:1px solid #ccc;height:calc(50% - 4px);min-height:150px;flex:0 0 calc(33.333% - 6px);box-sizing:border-box;position:relative;text-align:center" @mousedown="mouseDown(cards.indexOf(card))" @mouseup="mouseUp(cards.indexOf(card))">
+          <div style="position:absolute;top:4px;left:10px;font-size:18px;color:#999;pointer-events:none" x-text="card.deck"></div>
+          <div style="position:absolute;top:4px;right:10px;font-size:18px;pointer-events:none"><span x-text="card.state" :style="card.state === 'E' ? 'color:red' : 'color:#999'"></span></div>
           <div style="padding:20px 12px 12px" x-html="card.front"></div>
           <hr style="margin:8px 12px" x-show="card.state === 'A'">
           <div style="padding:0 12px 12px" x-show="card.state === 'A'" x-html="card.back"></div>
         </div>
       </template>
       <template x-for="i in (6 - cards.length)">
-        <div style="border:1px solid #ccc;min-height:320px;flex:0 0 calc(33.333% - 6px);box-sizing:border-box;padding:12px">
+        <div style="border:1px solid #ccc;height:calc(50% - 4px);min-height:150px;flex:0 0 calc(33.333% - 6px);box-sizing:border-box;padding:12px">
           <div style="background:#eee;height:16px;width:80%;margin:0 auto 8px"></div>
           <div style="background:#eee;height:16px;width:60%;margin:0 auto"></div>
         </div>
       </template>
     </div>
 
-    <footer style="margin-top:16px;border-top:1px solid #ccc;padding-top:8px;display:flex;justify-content:space-between">
+    <footer style="border-top:1px solid #ccc;display:flex;align-items:center;justify-content:space-between;font-size:20px">
       <span x-text="status"></span>
       <span>New <span x-text="stats.new"></span> &middot; Due <span x-text="stats.due"></span></span>
     </footer>
@@ -39,6 +74,10 @@
 
   <script>
     document.addEventListener('alpine:init', () => {
+      Alpine.data('help', () => ({
+        open: false,
+        lang: 'zh'
+      }))
       Alpine.data('anki', () => ({
         url: 'http://127.0.0.1:8765',
         key: '',
