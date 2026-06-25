@@ -12,8 +12,8 @@
 **部署：**
 
 ```bash
-git clone https://github.com/madokast/anki-multi-review.git
-cd anki-multi-review
+git clone https://github.com/madokast/anki-batch.git
+cd anki-batch
 # 直接浏览器打开 index.html，或
 python -m http.server 8080
 ```
@@ -22,7 +22,7 @@ python -m http.server 8080
 
 1. Fork 或推送到你自己的仓库
 2. Settings → Pages → Source 选 main 分支，目录 `/ (root)`，Save
-3. 访问 `https://<user>.github.io/anki-multi-review/`
+3. 访问 `https://madokast.github.io/anki-batch/`
 
 **依赖：**
 
