@@ -19,6 +19,7 @@
       </div>
       <template x-if="lang === 'zh'">
         <div>
+          <p>需安装 <a href="https://ankiweb.net/shared/info/2055492159" target="_blank">Anki-Connect</a> 插件 (Code: 2055492159)</p>
           <p><strong>操作</strong></p>
           <ul>
             <li>1-6 / qweasd / 鼠标点击 对应卡片，循环切换 Front→Good→Again→Front...</li>
@@ -39,6 +40,7 @@
       </template>
       <template x-if="lang === 'en'">
         <div>
+          <p>Requires <a href="https://ankiweb.net/shared/info/2055492159" target="_blank">Anki-Connect</a> add-on (Code: 2055492159)</p>
           <p><strong>Controls</strong></p>
           <ul>
             <li>1-6 / qweasd / click to cycle Front→Good→Again→Front...</li>
@@ -83,8 +85,8 @@
           <div style="position:absolute;top:4px;left:10px;font-size:18px;color:#999;pointer-events:none" x-text="card.deck"></div>
           <div style="position:absolute;top:4px;right:10px;font-size:18px;pointer-events:none"><span x-text="card.state" :style="card.state === 'Again' ? 'color:red' : (card.state === 'Good' ? 'color:green' : 'color:#999')"></span></div>
           <div style="padding:20px 12px 12px" x-html="card.front"></div>
-          <hr style="margin:8px 12px" x-show="card.state === 'Good'">
-          <div style="padding:0 12px 12px" x-show="card.state === 'Good'" x-html="card.back"></div>
+          <hr style="margin:8px 12px" x-show="card.state === 'Good' || card.state === 'Again'">
+          <div style="padding:0 12px 12px" x-show="card.state === 'Good' || card.state === 'Again'" x-html="card.back"></div>
           <div style="position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:32px;color:#ddd;pointer-events:none" x-text="['1 Q','2 W','3 E','4 A','5 S','6 D'][i]"></div>
         </div>
       </template>
